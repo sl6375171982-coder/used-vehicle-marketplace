@@ -4,6 +4,12 @@ Native Android app built with Kotlin, Jetpack Compose, and Navigation Compose.
 The project is intentionally independent of the existing `website/` application
 and does not include Supabase credentials.
 
+The Home and Browse screens use local sample vehicles and illustrative photo
+placeholders, not live listings. Browse search and category filters operate on
+that sample collection. The Sell screen is a local form preview only and does
+not submit or save listings. Profile provides a locally persisted theme
+preference; account and favourites features are not connected to the backend.
+
 ## Requirements
 
 - Android Studio with the Android SDK for API 36
