@@ -1,6 +1,9 @@
 package com.example.vehiclemarket.ui.navigation
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -45,7 +48,10 @@ import com.example.vehiclemarket.ui.screens.SellScreen
 import com.example.vehiclemarket.ui.theme.ThemeMode
 import com.example.vehiclemarket.ui.theme.VehicleMarketTheme
 import com.example.vehiclemarket.ui.theme.saveThemeMode
+import com.example.vehiclemarket.ui.theme.saveWebsiteOrigin
 import com.example.vehiclemarket.ui.theme.themeModeFlow
+import com.example.vehiclemarket.ui.theme.websiteOriginFlow
+import com.example.vehiclemarket.ui.screens.validateWebsiteOrigin
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -70,6 +76,8 @@ fun VehicleMarketApp() {
     val snackbarHostState = remember { SnackbarHostState() }
     val themeModeFlow = remember(context) { context.themeModeFlow() }
     val themeMode by themeModeFlow.collectAsState(initial = ThemeMode.System)
+    val websiteOriginFlow = remember(context) { context.websiteOriginFlow() }
+    val websiteOrigin by websiteOriginFlow.collectAsState(initial = "")
     val navController = rememberNavController()
     val backStackEntry = navController.currentBackStackEntryAsState()
     val view = LocalView.current
@@ -149,7 +157,10 @@ fun VehicleMarketApp() {
                     BrowseScreen()
                 }
                 composable("sell") {
-                    SellScreen()
+                    SellScreen(
+                        websiteOrigin = websiteOrigin,
+                        onOpenSettings = { navController.navigate("profile") },
+                    )
                 }
                 composable("favourites") {
                     PlaceholderScreen(
@@ -161,6 +172,7 @@ fun VehicleMarketApp() {
                 composable("profile") {
                     ProfileScreen(
                         themeMode = themeMode,
+                        websiteOrigin = websiteOrigin,
                         onThemeModeSelected = { selectedMode ->
                             scope.launch {
                                 try {
@@ -169,6 +181,51 @@ fun VehicleMarketApp() {
                                     snackbarHostState.showSnackbar(
                                         "Theme preference could not be saved. ${error.localizedMessage.orEmpty()}".trim(),
                                     )
+                                }
+                            }
+                        },
+                        onWebsiteOriginSaved = { origin ->
+                            val validOrigin = if (origin.isBlank()) "" else validateWebsiteOrigin(origin)
+                            if (validOrigin == null) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Enter a valid HTTPS website origin, such as https://example.com.",
+                                    )
+                                }
+                            } else {
+                                scope.launch {
+                                    try {
+                                        context.saveWebsiteOrigin(validOrigin)
+                                        snackbarHostState.showSnackbar("Website address saved on this device.")
+                                    } catch (error: IOException) {
+                                        snackbarHostState.showSnackbar(
+                                            "Website address could not be saved. ${error.localizedMessage.orEmpty()}".trim(),
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        onOpenAdminDashboard = {
+                            val validOrigin = validateWebsiteOrigin(websiteOrigin)
+                            if (validOrigin == null) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Set the public website address before opening its admin console.",
+                                    )
+                                }
+                            } else {
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("$validOrigin/admin"),
+                                )
+                                try {
+                                    context.startActivity(intent)
+                                } catch (_: ActivityNotFoundException) {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            "No browser is available to open the admin console.",
+                                        )
+                                    }
                                 }
                             }
                         },

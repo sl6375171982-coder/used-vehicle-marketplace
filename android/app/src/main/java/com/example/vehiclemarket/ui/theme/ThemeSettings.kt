@@ -17,6 +17,7 @@ enum class ThemeMode(val label: String) {
 }
 
 private val themeModeKey = stringPreferencesKey("theme_mode")
+private val websiteOriginKey = stringPreferencesKey("website_origin")
 
 fun Context.themeModeFlow() = vehicleMarketDataStore.data.map { preferences ->
     preferences[themeModeKey]
@@ -24,8 +25,22 @@ fun Context.themeModeFlow() = vehicleMarketDataStore.data.map { preferences ->
         ?: ThemeMode.Dark
 }
 
+fun Context.websiteOriginFlow() = vehicleMarketDataStore.data.map { preferences ->
+    preferences[websiteOriginKey].orEmpty()
+}
+
 suspend fun Context.saveThemeMode(themeMode: ThemeMode) {
     vehicleMarketDataStore.edit { preferences ->
         preferences[themeModeKey] = themeMode.name
+    }
+}
+
+suspend fun Context.saveWebsiteOrigin(origin: String) {
+    vehicleMarketDataStore.edit { preferences ->
+        if (origin.isBlank()) {
+            preferences.remove(websiteOriginKey)
+        } else {
+            preferences[websiteOriginKey] = origin.trim().trimEnd('/')
+        }
     }
 }

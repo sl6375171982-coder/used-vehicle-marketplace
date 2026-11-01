@@ -4,11 +4,24 @@ Native Android app built with Kotlin, Jetpack Compose, and Navigation Compose.
 The project is intentionally independent of the existing `website/` application
 and does not include Supabase credentials.
 
-The Home and Browse screens use local sample vehicles and illustrative photo
-placeholders, not live listings. Browse search and category filters operate on
-that sample collection. The Sell screen is a local form preview only and does
-not submit or save listings. Profile provides a locally persisted theme
-preference; account and favourites features are not connected to the backend.
+The Home and Browse screens use local sample vehicles and illustrative vehicle
+artwork, not live listings. Browse search and category filters operate on that
+sample collection. The Sell screen follows the website's multipart submission
+contract and sends vehicle details, seller contact information, and optional
+photos to the configured website API. The website stores submissions as pending
+and keeps its service credentials server-side. The Android app never contains a
+service-role key.
+
+Set the public website origin in **Profile > Website connection** before
+submitting (for example, `https://your-public-domain.example`). This origin is
+saved locally on the device. Photo selection accepts JPEG, PNG, or WebP, up to
+8 images, 5 MB each, and 20 MB total.
+
+The website's dashboard is an administrator console, not a seller dashboard.
+The app opens that existing console in the browser so its existing sign-in and
+`admin_users` authorization remain in force. Account creation, seller listing
+management, favourites, and live marketplace browsing are not provided by the
+current website backend.
 
 ## Requirements
 
