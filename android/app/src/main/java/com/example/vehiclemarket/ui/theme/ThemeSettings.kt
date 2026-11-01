@@ -21,7 +21,7 @@ private val themeModeKey = stringPreferencesKey("theme_mode")
 fun Context.themeModeFlow() = vehicleMarketDataStore.data.map { preferences ->
     preferences[themeModeKey]
         ?.let { storedValue -> ThemeMode.entries.firstOrNull { it.name == storedValue } }
-        ?: ThemeMode.System
+        ?: ThemeMode.Dark
 }
 
 suspend fun Context.saveThemeMode(themeMode: ThemeMode) {

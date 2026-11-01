@@ -1,7 +1,7 @@
 package com.example.vehiclemarket.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -36,20 +35,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun BrowseScreen() {
     var query by rememberSaveable { mutableStateOf("") }
-    var selectedCategoryName by rememberSaveable { mutableStateOf("All") }
-
-    val filteredVehicles = remember(query, selectedCategoryName) {
+    var selectedCategory by rememberSaveable { mutableStateOf<VehicleCategory?>(null) }
+    val filteredVehicles = remember(query, selectedCategory) {
         demoVehicles.filter { vehicle ->
-            val matchesCategory = selectedCategoryName == "All" ||
-                vehicle.category.label == selectedCategoryName
-            val matchesQuery = query.isBlank() ||
-                vehicle.name.contains(query.trim(), ignoreCase = true) ||
-                vehicle.location.contains(query.trim(), ignoreCase = true) ||
-                vehicle.category.label.contains(query.trim(), ignoreCase = true)
+            val matchesCategory = selectedCategory == null || vehicle.category == selectedCategory
+            val normalizedQuery = query.trim()
+            val matchesQuery = normalizedQuery.isEmpty() ||
+                vehicle.name.contains(normalizedQuery, ignoreCase = true) ||
+                vehicle.location.contains(normalizedQuery, ignoreCase = true) ||
+                vehicle.category.label.contains(normalizedQuery, ignoreCase = true)
             matchesCategory && matchesQuery
         }
     }
@@ -62,105 +61,107 @@ fun BrowseScreen() {
     ) {
         val columns = if (maxWidth >= 700.dp) 2 else 1
         val vehicleRows = filteredVehicles.chunked(columns)
-
         LazyColumn(
             modifier = Modifier
                 .widthIn(max = 1120.dp)
                 .fillMaxWidth(),
-            contentPadding = PaddingValues(top = 24.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            contentPadding = PaddingValues(top = 25.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(19.dp),
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text(
-                        text = "Find your next vehicle",
+                        text = "The collection",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                     Text(
-                        text = "Explore this sample collection. These are not live listings.",
+                        text = "Explore a considered selection of sample vehicles.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-
             item {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(16.dp),
                     placeholder = { Text("Search make, model or city") },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Outlined.Search,
                             contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
                         )
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 )
             }
-
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Filter by vehicle type",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = "Vehicle type",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        listOf("All", "Cars", "Bikes", "Commercial").forEach { category ->
+                        FilterChip(
+                            selected = selectedCategory == null,
+                            onClick = { selectedCategory = null },
+                            label = { Text("All") },
+                        )
+                        VehicleCategory.entries.forEach { category ->
                             FilterChip(
-                                selected = selectedCategoryName == category,
-                                onClick = { selectedCategoryName = category },
-                                label = { Text(category) },
+                                selected = selectedCategory == category,
+                                onClick = {
+                                    selectedCategory =
+                                        if (selectedCategory == category) null else category
+                                },
+                                label = { Text(category.label) },
                             )
                         }
                     }
                 }
             }
-
             item {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    shape = RoundedCornerShape(14.dp),
+                SampleDataNotice()
+            }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 11.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "${filteredVehicles.size} sample vehicles",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = "Preview only",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
+                    Text(
+                        text = if (filteredVehicles.size == 1) "1 vehicle" else "${filteredVehicles.size} vehicles",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "PREVIEW",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.8.sp,
+                    )
                 }
             }
-
             if (vehicleRows.isEmpty()) {
                 item {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(20.dp),
                     ) {
                         Text(
-                            text = "No sample vehicles match your search. Try another make, city or category.",
-                            modifier = Modifier.padding(22.dp),
+                            text = "No sample vehicles match those filters. Try a different make, city or vehicle type.",
+                            modifier = Modifier.padding(20.dp),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
